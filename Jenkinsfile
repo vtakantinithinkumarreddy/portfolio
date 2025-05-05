@@ -8,7 +8,7 @@ pipeline {
     stages{
         stage('Clone Repository'){
             steps {
-                git branch:'main', url:'https://github.com/your-username/your-repo.git'
+                git branch:'main', url:'https://github.com/vtakantinithinkumarreddy/portfolio.git'
             }
         }
         stage('Build Docker Image'){
