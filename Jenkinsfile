@@ -1,21 +1,31 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'yourdockerhubusername/yourrepo'
+        DOCKER_CREDENTIALS_ID = 'dockerhub-creds'  // Set this in Jenkins > Credentials
+    }
+
     stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/yourusername/your-portfolio-repo.git'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    def app = docker.build("vtakantinithinkumarreddy/portfolio")
+                    docker.build("${DOCKER_IMAGE}:latest")
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('', 'dockerhub-credentials-id') {
-                        def app = docker.image("vtakantinithinkumarreddy/portfolio")
-                        app.push("latest")
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                        docker.image("${DOCKER_IMAGE}:latest").push()
                     }
                 }
             }
@@ -23,8 +33,11 @@ pipeline {
     }
 
     post {
+        success {
+            echo 'Build and push successful!'
+        }
         failure {
-            echo "Something went wrong in the pipeline."
+            echo 'Something went wrong.'
         }
     }
 }
