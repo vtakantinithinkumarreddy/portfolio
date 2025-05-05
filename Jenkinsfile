@@ -1,40 +1,43 @@
-environment {
-    IMAGE_NAME = 'nithin175/portfolio'
-    TAG = 'latest'
-}
+pipeline {
+    agent any
 
-stages {
-    stage('Clone Repository') {
-        steps {
-            git branch: 'main', url: 'https://github.com/vtakantinithinkumarreddy/portfolio.git'
-        }
+    environment {
+        IMAGE_NAME = 'nithin175/portfolio'
+        TAG = 'latest'
     }
 
-    stage('Build Docker Image') {
-        steps {
-            script {
-                dockerImage = docker.build("${IMAGE_NAME}:${TAG}")
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: 'https://github.com/vtakantinithinkumarreddy/portfolio.git'
             }
         }
-    }
 
-    stage('Push Docker Image') {
-        steps {
-            script {
-                // Make sure to create credentials in Jenkins with ID 'docker-creds'
-                docker.withRegistry('https://index.docker.io/v1/', 'docker-creds') {
-                    dockerImage.push()
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}:${TAG}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-creds') {
+                        dockerImage.push()
+                    }
                 }
             }
         }
     }
-}
 
-post {
-    success {
-        echo 'Docker image built and pushed successfully.'
-    }
-    failure {
-        echo 'Something went wrong in the pipeline.'
+    post {
+        success {
+            echo 'Docker image built and pushed successfully.'
+        }
+        failure {
+            echo 'Something went wrong in the pipeline.'
+        }
     }
 }
