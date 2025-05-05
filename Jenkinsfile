@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = 'your-dockerhub-username/portfolio'
-        TAG = 'latest
+        TAG = 'latest'
     }
 
     stages {
@@ -21,7 +21,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script{
-                    docker.withRegistry('https://index.docker.io/v1/','docker-creds'){
+                    docker.withRegistry("https://index.docker.io/v1/",'docker-creds'){
                         dockerimage.push();
                 }
             }
