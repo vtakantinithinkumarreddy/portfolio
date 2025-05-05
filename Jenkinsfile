@@ -26,11 +26,11 @@ pipeline {
                 }
             }
         }
-    }
-
+        }
     post {
         success {
             echo "Docker image pushed successfully: ${IMAGE_NAME}:${TAG}"
         }
     }
+}
 }
