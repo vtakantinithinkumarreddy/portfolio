@@ -1,32 +1,28 @@
 pipeline {
     agent any
-
     environment {
         IMAGE_NAME = 'your-dockerhub-username/portfolio'
-        TAG = "${env.BUILD_NUMBER}"
+        TAG = 'latest
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/your-username/your-repo.git'
+                git branch:'main', url:'https://github.com/your-username/your-repo.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${IMAGE_NAME}:${TAG}")
+                    dockerimage = docker.build("${IMAGE_NAME}:${TAG}")
                 }
             }
         }
-
         stage('Push Docker Image') {
             steps {
-                withDockerRegistry([credentialsId: 'dockerhub-credentials-id', url: '']) {
-                    script {
-                        docker.image("${IMAGE_NAME}:${TAG}").push()
-                    }
+                script{
+                    docker.withRegistry('https://index.docker.io/v1/','docker-creds'){
+                        dockerimage.push();
                 }
             }
         }
