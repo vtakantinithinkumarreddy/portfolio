@@ -2,28 +2,31 @@ pipeline {
     agent any
 
     environment {
-        // Define Docker Image and Docker Hub repository
-        DOCKER_IMAGE = 'your-dockerhub-username/your-portfolio'  // Update with your Docker Hub username/repo
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials-id' // Jenkins Docker Hub credentials ID
-        GIT_REPO = 'https://github.com/vtakantinithinkumarreddy/portfolio.git' // GitHub repository URL
+        DOCKER_IMAGE = 'nithin175/portfolio'
+        DOCKER_HUB_CREDENTIALS = 'docker-hub-credentials-id' // Replace with your credentials ID
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                // Clone the repository from GitHub
                 checkout scm
+            }
+        }
+
+        stage('Check Docker Installation') {
+            steps {
+                script {
+                    // Check if Docker is installed
+                    sh 'docker --version'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Ensure Docker commands are used correctly in a docker context
-                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
-                        // Build the Docker image using NGINX to serve static files
-                        docker.build("${DOCKER_IMAGE}:latest", "-f Dockerfile .")
-                    }
+                    // Build the Docker image
+                    sh 'docker build -t ${DOCKER_IMAGE} .'
                 }
             }
         }
@@ -31,9 +34,12 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    // Push the Docker image to Docker Hub after building it
-                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
-                        docker.image("${DOCKER_IMAGE}:latest").push()
+                    // Log in to Docker Hub and push the image
+                    withCredentials([usernamePassword(credentialsId: DOCKER_HUB_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                            docker push ${DOCKER_IMAGE}
+                        """
                     }
                 }
             }
@@ -45,7 +51,7 @@ pipeline {
             echo 'Pipeline execution completed.'
         }
         success {
-            echo 'Docker image built and pushed to Docker Hub successfully.'
+            echo 'Build and push succeeded.'
         }
         failure {
             echo 'An error occurred during the pipeline execution.'
