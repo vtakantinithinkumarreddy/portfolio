@@ -2,59 +2,33 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'nithin175/portfolio'
-        DOCKER_HUB_CREDENTIALS = 'docker-hub-credentials-id' // Replace with your credentials ID
+        DOCKER_IMAGE = 'your-docker-image-name'
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_USERNAME = credentials('docker-hub-username')
+        DOCKER_PASSWORD = credentials('docker-hub-password')
     }
 
     stages {
-        stage('Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Check Docker Installation') {
-            steps {
-                script {
-                    // Check if Docker is installed
-                    sh 'docker --version'
-                }
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
                     // Build the Docker image
-                    sh 'docker build -t ${DOCKER_IMAGE} .'
+                    sh 'docker build -t $DOCKER_IMAGE .'
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Log in to Docker Hub and push the image
-                    withCredentials([usernamePassword(credentialsId: DOCKER_HUB_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh """
-                            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-                            docker push ${DOCKER_IMAGE}
-                        """
+                    // Log into Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials-id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY"
                     }
+                    // Push the Docker image to Docker Hub
+                    sh "docker push $DOCKER_IMAGE"
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline execution completed.'
-        }
-        success {
-            echo 'Build and push succeeded.'
-        }
-        failure {
-            echo 'An error occurred during the pipeline execution.'
         }
     }
 }
