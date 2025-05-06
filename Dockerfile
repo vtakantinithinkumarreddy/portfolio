@@ -5,7 +5,7 @@ FROM nginx:alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy your site into the nginx web directory
-COPY . /usr/share/nginx/html
+COPY index.html /usr/share/nginx/html/
 
 # Expose port (optional)
 EXPOSE 80
