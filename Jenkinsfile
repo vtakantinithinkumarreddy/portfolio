@@ -4,8 +4,9 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'your-docker-image-name'
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USERNAME = credentials('docker-hub-username')
-        DOCKER_PASSWORD = credentials('docker-hub-password')
+        // Use the credentials by their ID and assign them to environment variables
+        DOCKER_USERNAME = credentials('docker-hub-credentials-id')  // Correct credentials ID here
+        DOCKER_PASSWORD = credentials('docker-hub-credentials-id')  // Correct credentials ID here
     }
 
     stages {
@@ -21,7 +22,7 @@ pipeline {
         stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Log into Docker Hub
+                    // Log into Docker Hub using the credentials stored in Jenkins
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials-id', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD $DOCKER_REGISTRY"
                     }
