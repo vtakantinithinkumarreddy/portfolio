@@ -2,14 +2,23 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'yourdockerhubusername/yourrepo'
-        DOCKER_CREDENTIALS_ID = 'dockerhub-creds'  // Set this in Jenkins > Credentials
+        DOCKER_IMAGE = 'your-dockerhub-username/your-node-app'
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials-id'
+        SSH_CREDENTIALS_ID = 'ssh-key-for-test-server'
+        TEST_SERVER = 'user@test-server-ip'
+        GIT_REPO = 'git@github.com:vtakantinithinkumarreddy/portfolio.git'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/yourusername/your-portfolio-repo.git'
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'git@github.com:vtakantinithinkumarreddy/portfolio.git',
+                        credentialsId: 'github-ssh'
+                    ]]
+                ])
             }
         }
 
@@ -21,23 +30,35 @@ pipeline {
             }
         }
 
-        stage('Push to DockerHub') {
+        stage('Push to Docker Hub') {
             steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CREDENTIALS_ID}") {
+                withDockerRegistry([credentialsId: "${DOCKER_CREDENTIALS_ID}", url: '']) {
+                    script {
                         docker.image("${DOCKER_IMAGE}:latest").push()
                     }
+                }
+            }
+        }
+
+        stage('Deploy on Test Server') {
+            steps {
+                sshagent (credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${TEST_SERVER} << 'EOF'
+                    docker pull ${DOCKER_IMAGE}:latest
+                    docker stop node-app || true
+                    docker rm node-app || true
+                    docker run -d --name node-app -p 3000:3000 ${DOCKER_IMAGE}:latest
+                    EOF
+                    """
                 }
             }
         }
     }
 
     post {
-        success {
-            echo 'Build and push successful!'
-        }
-        failure {
-            echo 'Something went wrong.'
+        always {
+            echo 'Pipeline execution completed.'
         }
     }
 }
