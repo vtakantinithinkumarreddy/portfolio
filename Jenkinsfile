@@ -19,17 +19,20 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image using NGINX to serve static files
-                    docker.build("${DOCKER_IMAGE}:latest", "-f Dockerfile .")
+                    // Ensure Docker commands are used correctly in a docker context
+                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
+                        // Build the Docker image using NGINX to serve static files
+                        docker.build("${DOCKER_IMAGE}:latest", "-f Dockerfile .")
+                    }
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                withDockerRegistry([credentialsId: "${DOCKER_CREDENTIALS_ID}", url: '']) {
-                    script {
-                        // Push the built Docker image to Docker Hub
+                script {
+                    // Push the Docker image to Docker Hub after building it
+                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
                         docker.image("${DOCKER_IMAGE}:latest").push()
                     }
                 }
