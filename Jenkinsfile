@@ -2,30 +2,25 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'your-dockerhub-username/your-node-app'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials-id'
-        SSH_CREDENTIALS_ID = 'ssh-key-for-test-server'
-        TEST_SERVER = 'user@test-server-ip'
-        GIT_REPO = 'git@github.com:vtakantinithinkumarreddy/portfolio.git'
+        // Define Docker Image and Docker Hub repository
+        DOCKER_IMAGE = 'your-dockerhub-username/your-portfolio'  // Update with your Docker Hub username/repo
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials-id' // Jenkins Docker Hub credentials ID
+        GIT_REPO = 'https://github.com/vtakantinithinkumarreddy/portfolio.git' // GitHub repository URL
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: 'git@github.com:vtakantinithinkumarreddy/portfolio.git',
-                        credentialsId: 'github-ssh'
-                    ]]
-                ])
+                // Clone the repository from GitHub
+                checkout scm
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}:latest")
+                    // Build the Docker image using NGINX to serve static files
+                    docker.build("${DOCKER_IMAGE}:latest", "-f Dockerfile .")
                 }
             }
         }
@@ -34,23 +29,9 @@ pipeline {
             steps {
                 withDockerRegistry([credentialsId: "${DOCKER_CREDENTIALS_ID}", url: '']) {
                     script {
+                        // Push the built Docker image to Docker Hub
                         docker.image("${DOCKER_IMAGE}:latest").push()
                     }
-                }
-            }
-        }
-
-        stage('Deploy on Test Server') {
-            steps {
-                sshagent (credentials: ["${SSH_CREDENTIALS_ID}"]) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${TEST_SERVER} << 'EOF'
-                    docker pull ${DOCKER_IMAGE}:latest
-                    docker stop node-app || true
-                    docker rm node-app || true
-                    docker run -d --name node-app -p 3000:3000 ${DOCKER_IMAGE}:latest
-                    EOF
-                    """
                 }
             }
         }
@@ -59,6 +40,12 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Docker image built and pushed to Docker Hub successfully.'
+        }
+        failure {
+            echo 'An error occurred during the pipeline execution.'
         }
     }
 }
